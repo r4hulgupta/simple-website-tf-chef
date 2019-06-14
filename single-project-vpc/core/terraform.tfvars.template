@@ -1,0 +1,23 @@
+
+organization_id = "xxxxxxxxxx"
+
+credentials_file_path = "/Users/myusername/.keys/credentials.json"
+
+billing_account_id = "xxxxxx-xxxxxx-xxxxxx"
+
+project_name = "my-core-prj"
+
+network_name = "my-core-vpc"
+
+subnet_region_and_cidr = {
+  "subnet_01_region" = "us-west1"
+  "subnet_02_region" = "us-central1"
+  "subnet_01_prd"    = "10.30.10.0/24"  # Change if needed
+  "subnet_01_dev"    = "10.30.11.0/24"  # Change if needed
+  "subnet_01_tst"    = "10.30.12.0/24"  # Change if needed
+  "subnet_01_sse"    = "10.30.13.0/24"  # Change if needed
+  "subnet_02_prd"    = "10.40.10.0/24"  # Change if needed
+  "subnet_02_dev"    = "10.40.11.0/24"  # Change if needed
+  "subnet_02_tst"    = "10.40.12.0/24"  # Change if needed
+  "subnet_02_sse"    = "10.40.13.0/24"  # Change if needed
+}

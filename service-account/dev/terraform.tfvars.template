@@ -1,0 +1,5 @@
+
+project_id = "guptarhl-rg-core-prj"
+credential_file_path = "/Users/guptarhl/.keys/svc-resource-manager.json"
+service_account_id = "svc-ws-dev"
+code_repo_project = "guptarhl-infra01-prj"

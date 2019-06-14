@@ -1,0 +1,40 @@
+project_id = "guptarhl-rg-core-prj"
+credential_file_path = "/Users/guptarhl/.keys/svc-resource-manager.json"
+region = "us-west1"
+network_name = "rg-core-vpc"
+deployment_id = "rg-ws-dev"
+
+/*************************
+* MIG Template Variables 
+*************************/
+machine_type = "n1-standard-1"
+
+tags = ["allow-healthcheck"]
+source_image = "ws-dev-gold-v1"
+source_image_project = "guptarhl-rg-core-prj"
+auto_delete_disk = "true"
+disk_size_gb = "10"
+disk_type = "pd-standard"
+metadata = {
+    "startup-script-url" = "gs://guptarhl-rg-core-prj-deployment-helpers/helpers/startup-scripts/ws_bootstrap.sh"
+}
+
+service_account = {
+    email = "svc-ws-dev@guptarhl-rg-core-prj.iam.gserviceaccount.com"
+    scopes = ["cloud-platform"]
+}
+
+subnetwork_name = "dev-rg-core-vpc-us-west1"
+
+/*************************
+* MIG Cluster Variables 
+*************************/
+min_replicas = "2"
+enable_autoscaling = "true"
+
+/*************************
+* Load Balancer Variables 
+*************************/
+healthcheck_port_name = "http"
+healthcheck_port_number = "80"
+healthcheck_target_path = "/root/home/index.html"
