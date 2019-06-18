@@ -1,17 +1,17 @@
 
-organization_id = "xxxxxxxxxx"
+organization_id = "<ORG_ID>"
 
-credentials_file_path = "/Users/myusername/.keys/credentials.json"
+credentials_file_path = "<KEY_FILE>"
 
-billing_account_id = "xxxxxx-xxxxxx-xxxxxx"
+billing_account_id = "<BILLING_ACCOUNT>"
 
-project_name = "my-core-prj"
+project_name = "<CORE_PROJECT>"
 
-network_name = "my-core-vpc"
+network_name = "<VPC_NAME>"
 
 subnet_region_and_cidr = {
-  "subnet_01_region" = "us-west1"
-  "subnet_02_region" = "us-central1"
+  "subnet_01_region" = "<GCP_REGION_A>"
+  "subnet_02_region" = "<GCP_REGION_B"
   "subnet_01_prd"    = "10.30.10.0/24"  # Change if needed
   "subnet_01_dev"    = "10.30.11.0/24"  # Change if needed
   "subnet_01_tst"    = "10.30.12.0/24"  # Change if needed

@@ -1,8 +1,8 @@
-project_id = "guptarhl-rg-core-prj"
-credential_file_path = "/Users/guptarhl/.keys/svc-resource-manager.json"
-region = "us-west1"
-network_name = "rg-core-vpc"
-deployment_id = "rg-ws-dev"
+project_id = "<CORE_PROJECT>"
+credential_file_path = "<KEY_FILE>"
+region = "<GCP_REGION_A>"
+network_name = "<VPC_NAME>"
+deployment_id = "<DEPLOYMENT_ID>"
 
 /*************************
 * MIG Template Variables 
@@ -10,21 +10,21 @@ deployment_id = "rg-ws-dev"
 machine_type = "n1-standard-1"
 
 tags = ["allow-healthcheck"]
-source_image = "ws-dev-gold-v1"
-source_image_project = "guptarhl-rg-core-prj"
+source_image = "<GOLD_IMAGE_VM>"
+source_image_project = "<CORE_PROJECT>"
 auto_delete_disk = "true"
 disk_size_gb = "10"
 disk_type = "pd-standard"
 metadata = {
-    "startup-script-url" = "gs://guptarhl-rg-core-prj-deployment-helpers/helpers/startup-scripts/ws_bootstrap.sh"
+    "startup-script-url" = "gs://<HELPER_BUCKET>/startup-scripts/ws_bootstrap.sh"
 }
 
 service_account = {
-    email = "svc-ws-dev@guptarhl-rg-core-prj.iam.gserviceaccount.com"
+    email = "<APP_SA_NAME>@<CORE_PROJECT>.iam.gserviceaccount.com"
     scopes = ["cloud-platform"]
 }
 
-subnetwork_name = "dev-rg-core-vpc-us-west1"
+subnetwork_name = "dev-<VPC_NAME>-<GCP_REGION_A>"
 
 /*************************
 * MIG Cluster Variables 

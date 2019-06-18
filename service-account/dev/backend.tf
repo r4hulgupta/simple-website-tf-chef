@@ -1,6 +1,6 @@
 terraform {
     backend "gcs" {
-        bucket = "rg-infra-tf-state"
+        bucket = "<TF_BUCKET_NAME>"
         prefix = "terraform/state/dev/ws-deploy"
     }
 }
