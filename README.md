@@ -55,7 +55,7 @@ The script will perform below actions:
 1. Create a new seed project
 2. Assign billing account to seed project
 3. Create GCS bucket for Terraform state
-4. Create a GSR repo for source code management
+4. Create a CSR repo for source code management
 5. Create a GCP IAM service account to use with Terraform to perform deployment
 6. Create a service account key and save it locally
 7. Grant permissions to deployment service account
@@ -199,8 +199,8 @@ The below components will be created by Terraform:
 
 2. Upload the chef repo to CSR.
 
-    Get source repository and set `git remote` to GSR repo that was created in SEED_PROJECT and push code from [mychefrepo](./mychefrepo) to it.
-    > Read more about pushing code from existing repository to GSR [here](https://cloud.google.com/source-repositories/docs/pushing-code-from-a-repository).
+    Get source repository and set `git remote` to CSR repo that was created in SEED_PROJECT and push code from [mychefrepo](./mychefrepo) to it.
+    > Read more about pushing code from existing repository to CSR [here](https://cloud.google.com/source-repositories/docs/pushing-code-from-a-repository).
     ```
     $ cd simple-website-tf-chef/mychefrepo/
         
@@ -333,7 +333,7 @@ The below components will be created by Terraform:
     1. The instances will pull `ws_bootstrap.sh` from GCS based on the value of metadata key `startup_script_url` and run it locally.
         > Since Private Google Access is enabled, the instance will use GCP private network to get the script from GCS bucket.
 2. Bootstrapping process triggered by `ws_bootstrap.sh`:
-    1. Git pull to GSR repo to get Chef cookbooks.
+    1. Git pull to CSR repo to get Chef cookbooks.
     2. Run chef client local mode to start the configuration. Chef will then apply website code and bring Apache web server up.
 3. A Global HTTPS Load Balancer to interface and load balance the traffic between end users and the web servers.
     1. A self signed cert will be created and applied to GLB to serve SSL connections.
