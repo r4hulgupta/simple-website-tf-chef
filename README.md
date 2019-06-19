@@ -4,7 +4,7 @@
 
 This example demonstrates secure deployment of a simple website on GCP using Terraform to create the infrastructure (Project, VPC, Load Balanced MIG cluster etc.) and Chef to configure the VMs.
 * Terraform is a popular tool for creation and management of Infrastructure as Code.
-* Chef is a popular tool for configuration management of OS and applications.
+* Chef is a popular tool for configuration management of systems and applications.
 * [Private Google Access on VPC Subnets](https://cloud.google.com/vpc/docs/configure-private-google-access) is enabled so that the VM instances with private IPs can reach Google APIs and Services.
 * Firewall rules are used to control inbound traffic through the Load Balancer only and no traffic goes to the VMs directly.
 
@@ -38,15 +38,18 @@ A basic understanding of the below tools will be essential to understand this ex
    ```
 
 ### 2. Initialize gcloud
+If not done so already, initialize your gcloud to set appropriate project and authentication to GCP.
+```
+$ gcloud init
+    
+    <... Follow the interactive prompts to set values for project, zone defaults etc. ...>
 
-    If not done so already, initialize your gcloud to set appropriate project and authentication to GCP
-    ```
-    $ gcloud init # Follow the interactive prompts to set values for project account etc.
+$ gcloud auth login
+```
 
-    $ gcloud auth login
-    ```
 ### 3. Setup a seed project
-We will use a shell script to do initial seed project setup. The script performs the below steps, feel free to skip running this script if you already have a project with that you can use as seed project and if that project already has the below configuration.
+We will use a shell script to do initial seed project setup.
+> Feel free to skip running this script if you already have a project with that you can use as seed project and if that project already has the below configuration.
 
 The script will perform below actions:
 1. Create a new seed project
@@ -72,10 +75,10 @@ The script will perform below actions:
     * iam.googleapis.com
     * admin.googleapis.com
     * sourcerepo.googleapis.com
-    * Storage-api.googleapis.com
+    * storage-api.googleapis.com
 
 #### Set variables for setup_seed_prj.sh
-Edit `/helpers/setup_seed_prj.env` file to set some variables that will be used by the script to setup your seed project.
+Edit [/helpers/setup_seed_prj.env](./helpers/setup_seed_prj.env) file to set some variables that will be used by the script to setup your seed project.
 
 ```
 ORG_ID="<YOUR_ORG_ID>"
@@ -94,7 +97,8 @@ $ /helpers/setup_seed_prj.sh
 
 ## Deployment Steps
 ### 1. Some variables to be used throughout the deployment
-We will use the below values for this example, if you change any of the below values, make sure to use the same value throughout the example:
+We will use the below values for this example, it will be easy to use some commands later if you set these variables on your shell.
+> if you change any of the below values, make sure to use the same value throughout the example.
 ```
 CORE_PROJECT="my-core-prj"
 GOLD_IMAGE_VM="ws-dev-gold"
@@ -112,7 +116,8 @@ DEPLOYMENT_ID = "my-dev-website"
 ```
 
 ### 2. Create a Project and custom VPC Network
-We will use Terraform [Project Factory module](https://registry.terraform.io/modules/terraform-google-modules/project-factory/google) to create a project and [Network module](https://registry.terraform.io/modules/terraform-google-modules/network/google) to create a custom network. Project Factory module has a auto_create_network option which will be set to false so that the default network is not created.
+We will use Terraform [Project Factory module](https://registry.terraform.io/modules/terraform-google-modules/project-factory/google) to create a project and [Network module](https://registry.terraform.io/modules/terraform-google-modules/network/google) to create a custom network.
+> Project Factory module has a `auto_create_network` option which will be set to `false` so that the default network is not created.
 
 The below components will be created by Terraform:
 1. Project Name: $CORE_PROJECT
@@ -136,7 +141,7 @@ The below components will be created by Terraform:
     * Helper bucket name: $HELPER_BUCKET
 
 #### Steps
-1. Set Terraform backend config
+1. Set Terraform backend config.
     1. Edit file [/single-project-vpc/core/backend.tf](./single-project-vpc/core/backend.tf).
     2. Replace `<TF_BUCKET_NAME>` with the value of `$TF_BUCKET_NAME`.
     3. Save the file.
@@ -171,7 +176,7 @@ The below components will be created by Terraform:
      "subnet_02_sse"    = "10.40.13.0/24"
     }
     ```
-4. Run terraform init and terraform plan within `/single-project-vpc/core` directory.
+4. Run `terraform init` and `terraform plan` within `/single-project-vpc/core` directory.
     ```
     $ terraform init
 
@@ -179,7 +184,7 @@ The below components will be created by Terraform:
 
     <...terraform plan output will be shown here...>
     ```
-5. Review the plan output to see what resources will be created and then run terraform apply to create the resources.
+5. Review the plan output to see what resources will be created and then run `terraform apply` to create the resources.
     ```
     $ terraform apply
     
@@ -187,26 +192,26 @@ The below components will be created by Terraform:
     ```
 
 ### 3. Prepare for website deployment
-1. Upload startup scripts to GCS Bucket.
+1. Upload [ws_bootstrap.sh](.\helpers\startup-scripts\ws_bootstrap.sh) to GCS Bucket.
     ```
     $ gsutil cp -r helpers/startup-scripts/ gs://$HELPER_BUCKET/startup-scripts/
     ```
 
-2. Upload the chef repo to CSR
-    1. Get source repo 
-    2. Set git remote to GSR repo that was created in SEED_PROJECT and push code from [mychefrepo](./mychefrepo) to it.
-        > Read more about pushing code from existing repository to GSR: https://cloud.google.com/source-repositories/docs/pushing-code-from-a-repository
-        ```
-        $ cd simple-website-tf-chef/mychefrepo/
+2. Upload the chef repo to CSR.
+
+    Get source repository and set `git remote` to GSR repo that was created in SEED_PROJECT and push code from [mychefrepo](./mychefrepo) to it.
+    > Read more about pushing code from existing repository to GSR [here](https://cloud.google.com/source-repositories/docs/pushing-code-from-a-repository).
+    ```
+    $ cd simple-website-tf-chef/mychefrepo/
         
-        $ CODE_REPO_URL="https://source.developers.google.com/p/${SEED_PROJECT}/r/${CODE_REPO_NAME}"
+    $ CODE_REPO_URL="https://source.developers.google.com/p/${SEED_PROJECT}/r/${CODE_REPO_NAME}"
 
-        $ git config --global credential.'https://source.developers.google.com'.helper gcloud.sh
+    $ git config --global credential.'https://source.developers.google.com'.helper gcloud.sh
 
-        $ git remote add origin "${CODE_REPO_URL}"
+    $ git remote add origin "${CODE_REPO_URL}"
 
-        $ git push --all origin
-        ```
+    $ git push --all origin
+    ```
 
     3. Create a golden image with dependencies pre-installed.
         
@@ -218,7 +223,7 @@ The below components will be created by Terraform:
                 --project=$CORE_PROJECT \
                 --zone=$GCP_ZONE \
                 --machine-type=n1-standard-1 \
-                --subnet=dev-my-core-vpc-us-west1 \
+                --subnet="dev-${VPC_NAME}-${GCP_REGION_A}" \
                 --tags=allow-ssh \
                 --image-family=centos-7 \
                 --image-project=centos-cloud \
@@ -271,7 +276,8 @@ The below components will be created by Terraform:
             ```
             $ gcloud compute images list --filter="name='$GOLD_IMGE_VM'"
             ```
-    4. Create a service account to be used by MIG VMs
+    4. Create a service account to be used by MIG VMs.
+        
         We will use Terraform to create the service account in CORE_PROJECT and grant it required permissions on GCP.
 
         The below components will be created by Terraform:
@@ -284,12 +290,12 @@ The below components will be created by Terraform:
             * Permissions on SEED_PROJECT
                 * roles/source.reader
 
-        Steps:
-        1. Set Terraform backend config
+        **Steps:**
+        1. Set Terraform backend config.
             1. Edit file [/service-account/dev/backend.tf](./service-account/dev/backend.tf).
             2. Replace `<TF_BUCKET_NAME>` with the value of `$TF_BUCKET_NAME`.
             3. Save the file.
-        2. Make a copy of [/service-account/dev/terraform.tfvars.template](./service-account/dev/terraform.tfvars.template)
+        2. Make a copy of [/service-account/dev/terraform.tfvars.template](./service-account/dev/terraform.tfvars.template).
             ```
             $ cd simple-website-tf-chef/service-account/dev
             $ cp terraform.tfvars.template terraform.tfvars
@@ -304,23 +310,36 @@ The below components will be created by Terraform:
 
             code_repo_project = "<SEED_PROJECT>"
             ```
-        3. Run terraform init and terraform plan within `/service-account/dev` directory and review the plan and do terraform apply.
+        4. Run `terraform init` and `terraform plan` within `/service-account/dev` directory
+            ```
+            $ terraform init
+
+            $ terraform plan
+
+                <...terraform plan output will be shown here...>
+            ```
+        5. Review the plan output to see what resources will be created and then run `terraform apply` to create the resources.
+            ```
+            $ terraform apply
+    
+                <...terraform will show plan output that will be applied and will ask for confirmation before it is applied...>
+            ```
 
 ### 4. Deploy MIG infrastructure and website
-We will use Terraform [Google VM module](https://registry.terraform.io/modules/terraform-google-modules/vm/google) to create the GCE MIG without public IPs and [Google LB module](https://github.com/GoogleCloudPlatform/terraform-google-lb-http) to create the Global LB. The startup script will be used to trigger chef client in local mode on the instance that will do the OS and application configurations and then make the website available.
+We will use Terraform [VM module](https://registry.terraform.io/modules/terraform-google-modules/vm/google) to create the GCE MIG without public IPs and [LB module](https://github.com/GoogleCloudPlatform/terraform-google-lb-http) to create the Global LB. The startup script will be used to trigger chef client in local mode on the instance that will do OS and application configurations and then make the website available.
 
 The below components will be created by Terraform:
-1. A GCE Managed Instance Group (MIG) running CentOS.
-    1. Supply the GCS path to startup.sh script that the instance will pull and run during the bootup process. The metadata tag that gets this value is startup_script_url.
-    2. Since the private google access is enabled, the instance will use the google backbone to get the script from GCE bucket.
-2. Bootstrapping process triggered by startup scripts:
+1. A GCE Managed Instance Group (MIG) running CentOS 7.
+    1. The instances will pull `ws_bootstrap.sh` from GCS based on the value of metadata key `startup_script_url` and run it locally.
+        > Since Private Google Access is enabled, the instance will use GCP private network to get the script from GCS bucket.
+2. Bootstrapping process triggered by `ws_bootstrap.sh`:
     1. Git pull to GSR repo to get Chef cookbooks.
     2. Run chef client local mode to start the configuration. Chef will then apply website code and bring Apache web server up.
-3. A Global HTTPS Load Balancer to interface and load balance the traffic between end users and the web servers
+3. A Global HTTPS Load Balancer to interface and load balance the traffic between end users and the web servers.
     1. A self signed cert will be created and applied to GLB to serve SSL connections.
 
 #### Steps
-1. Set Terraform backend config
+1. Set Terraform backend config.
     1. Edit file [/ws-deploy/dev/backend.tf](./ws-deploy/dev/backend.tf).
     2. Replace `<TF_BUCKET_NAME>` with the value of `$TF_BUCKET_NAME`.
     3. Save the file.
@@ -373,7 +392,20 @@ The below components will be created by Terraform:
     healthcheck_target_path = "/root/home/index.html"
     ```
 
-4. Run terraform init and terraform plan within `/ws-deploy/dev` directory and review the plan and do terraform apply.
+4. Run `terraform init` and `terraform plan` within `/ws-deploy/dev` directory.
+    ```
+    $ terraform init
+
+    $ terraform plan
+
+        <...terraform plan output will be shown here...>
+    ```
+5. Review the plan output to see what resources will be created and then run `terraform apply` to create the resources.
+   ```
+   $ terraform apply
+    
+        <...terraform will show plan output that will be applied and will ask for confirmation before it is applied...>
+   ```
 
 ### 5. Verify that the website is live
 There are different ways to verify that the website is live:
