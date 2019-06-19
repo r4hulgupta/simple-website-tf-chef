@@ -17,7 +17,7 @@ The below resources are created using Terraform modules:
 5. Global HTTPS LB
 6. GCS Bucket
 
-### Requirements:
+### Requirements
 A basic understanding of the below tools will be essential to understand this example:
 1. [Terraform](https://www.terraform.io/) (must be installed already)
 2. [Terraform GCP Provider](https://www.terraform.io/docs/providers/google/index.html)
