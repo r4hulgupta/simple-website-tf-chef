@@ -1,7 +1,8 @@
 #!/bin/bash -xev
 
 # Variables
-CHEF_REPO_URL='https://source.developers.google.com/p/guptarhl-infra01-prj/r/rgchefrepo'
+SEED_PROJECT=""
+CHEF_REPO_URL="https://source.developers.google.com/p/${SEED_PROJECT}/r/mychefrepo"
 COOKBOOK_NAME='rg_ws_deploy'
 
 # Do some chef pre-work

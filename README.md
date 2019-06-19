@@ -192,12 +192,15 @@ The below components will be created by Terraform:
     ```
 
 ### 3. Prepare for website deployment
-1. Upload [ws_bootstrap.sh](.\helpers\startup-scripts\ws_bootstrap.sh) to GCS Bucket.
+1. Edit [ws_bootstrap.sh](./helpers/startup-scripts/ws_bootstrap.sh).
+    1. Set the value of variable `SEED_PROJECT` with your value of `$SEED_PROJECT`.
+
+2. Upload the edited ws_bootstrap.sh to GCS Bucket.
     ```
     $ gsutil cp -r helpers/startup-scripts/ gs://$HELPER_BUCKET/startup-scripts/
     ```
 
-2. Upload the chef repo to CSR.
+3. Upload the chef repo to CSR.
 
     Get source repository and set `git remote` to CSR repo that was created in SEED_PROJECT and push code from [mychefrepo](./mychefrepo) to it.
     > Read more about pushing code from existing repository to CSR [here](https://cloud.google.com/source-repositories/docs/pushing-code-from-a-repository).
@@ -213,117 +216,117 @@ The below components will be created by Terraform:
     $ git push --all origin
     ```
 
-    3. Create a golden image with dependencies pre-installed.
+4. Create a golden image with dependencies pre-installed.
         
-        > For high availability of the website, it is really important for the cluster to autoscale faster and so  all the dependencies must be pre-installed and only the basic website configuration should be done during the bootstrapping. Also since the environment won’t have internet access, doing this during deployment would require additional work to enable internet access via a proxy.
+    > For high availability of the website, it is really important for the cluster to autoscale faster and so  all the dependencies must be pre-installed and only the basic website configuration should be done during the bootstrapping. Also since the environment won’t have internet access, doing this during deployment would require additional work to enable internet access via a proxy.
 
-        1. Create a GCE Instance with public internet access to make it easy to install packages and dependencies. This example is using CentOS 7 Linux base image.
-            ```
-            $ gcloud compute instances create $GOLD_IMAGE_VM \
-                --project=$CORE_PROJECT \
-                --zone=$GCP_ZONE \
-                --machine-type=n1-standard-1 \
-                --subnet="dev-${VPC_NAME}-${GCP_REGION_A}" \
-                --tags=allow-ssh \
-                --image-family=centos-7 \
-                --image-project=centos-cloud \
-                --boot-disk-size=10GB \
-                --boot-disk-type=pd-standard \
-                --boot-disk-device-name=$GOLD_IMAGE_VM
-            ```
+    1. Create a GCE Instance with public internet access to make it easy to install packages and dependencies. This example is using CentOS 7 Linux base image.
+        ```
+        $ gcloud compute instances create $GOLD_IMAGE_VM \
+            --project=$CORE_PROJECT \
+            --zone=$GCP_ZONE \
+            --machine-type=n1-standard-1 \
+            --subnet="dev-${VPC_NAME}-${GCP_REGION_A}" \
+            --tags=allow-ssh \
+            --image-family=centos-7 \
+            --image-project=centos-cloud \
+            --boot-disk-size=10GB \
+            --boot-disk-type=pd-standard \
+            --boot-disk-device-name=$GOLD_IMAGE_VM
+        ```
 
-        2. Install git so that cookbooks and app code can be pulled from the repository.
-            ```
-            $ yum install git
-            ```
+    2. Install git so that cookbooks and app code can be pulled from the repository.
+        ```
+        $ yum install git
+        ```
 
-        3. Configure git to use gcloud as credentials helper.
+    3. Configure git to use gcloud as credentials helper.
         
-            > This step is needed when using Cloud Source Repository for code management. This will let you use git commands to interact with CSR to pull code during bootstrap.
-            ```
-            $ sudo git config --global credential.'https://source.developers.google.com'.helper gcloud.sh
-            ```
-        4. Install Chef Client.
-            > We are using version 15.0.300 for this example.
-            ```
-            $ curl -L https://omnitruck.chef.io/install.sh | sudo bash -s -- -v 15.0.300
-            ```
-        5. Install Stackdriver Logging and Monitoring Agents.
-            ```
-            # Monitoring Agent
-            $ curl -sSO https://dl.google.com/cloudagents/install-monitoring-agent.sh
-            $ sudo bash install-monitoring-agent.sh
+        > This step is needed when using Cloud Source Repository (CSR) for code management. This will let you use git commands to interact with CSR to pull code during bootstrap.
+        ```
+        $ sudo git config --global credential.'https://source.developers.google.com'.helper gcloud.sh
+        ```
+    4. Install Chef Client.
+        > We are using version 15.0.300 for this example.
+        ```
+        $ curl -L https://omnitruck.chef.io/install.sh | sudo bash -s -- -v 15.0.300
+        ```
+    5. Install Stackdriver Logging and Monitoring Agents.
+        ```
+        # Monitoring Agent
+        $ curl -sSO https://dl.google.com/cloudagents/install-monitoring-agent.sh
+        $ sudo bash install-monitoring-agent.sh
 
-            # Logging Agent
-            $ curl -sSO https://dl.google.com/cloudagents/install-logging-agent.sh
-            $ sudo bash install-logging-agent.sh
-            ```
-        6. Stop the instance after installing packages to be able to create an image from it. 
-            ```
-            $ gcloud compute instances stop $GOLD_IMAGE_VM --zone=us-west1-b \
-                --project=$CORE_PROJECT
-            ```
-        7. Create the GCE instance image using the gcloud command or via the GCP Console. It typically takes 5-10 mins for the image creation to complete.
-            ```
-            $ gcloud compute images create $GOLD_IMAGE_VM \
-                --project=$CORE_PROJECT \
-                --description="Gold Image for Web Servers" \
-                --family='centos-7' \
-                --source-disk=$GOLD_IMAGE_VM \
-                --source-disk-zone=$GCP_ZONE
-            ```
-        8. Check the status of image using the below command. It should by in ‘Ready’ state once completely created.
-            ```
-            $ gcloud compute images list --filter="name='$GOLD_IMGE_VM'"
-            ```
-    4. Create a service account to be used by MIG VMs.
+        # Logging Agent
+        $ curl -sSO https://dl.google.com/cloudagents/install-logging-agent.sh
+        $ sudo bash install-logging-agent.sh
+        ```
+    6. Stop the instance after installing packages to be able to create an image from it. 
+        ```
+        $ gcloud compute instances stop $GOLD_IMAGE_VM --zone=us-west1-b \
+            --project=$CORE_PROJECT
+        ```
+    7. Create the GCE instance image using the gcloud command or via the GCP Console. It typically takes 5-10 mins for the image creation to complete.
+        ```
+        $ gcloud compute images create $GOLD_IMAGE_VM \
+            --project=$CORE_PROJECT \
+            --description="Gold Image for Web Servers" \
+            --family='centos-7' \
+            --source-disk=$GOLD_IMAGE_VM \
+            --source-disk-zone=$GCP_ZONE
+        ```
+    8. Check the status of image using the below command. It should by in ‘Ready’ state once completely created.
+        ```
+        $ gcloud compute images list --filter="name='$GOLD_IMGE_VM'"
+        ```
+5. Create a service account to be used by MIG VMs.
         
-        We will use Terraform to create the service account in CORE_PROJECT and grant it required permissions on GCP.
+    We will use Terraform to create the service account in CORE_PROJECT and grant it required permissions on GCP.
 
-        The below components will be created by Terraform:
-        1. Service Account in CORE_PROJECT
-        2. Permissions granted to the service account:
-            * Permissions on CORE_PROJECT
-                * roles/storage.objectViewer
-                * roles/monitoring.metricWriter
-                * roles/logging.logWriter
-            * Permissions on SEED_PROJECT
-                * roles/source.reader
+    The below components will be created by Terraform:
+    1. Service Account in CORE_PROJECT
+    2. Permissions granted to the service account:
+        * Permissions on CORE_PROJECT
+            * roles/storage.objectViewer
+            * roles/monitoring.metricWriter
+            * roles/logging.logWriter
+        * Permissions on SEED_PROJECT
+            * roles/source.reader
 
-        **Steps:**
-        1. Set Terraform backend config.
-            1. Edit file [/service-account/dev/backend.tf](./service-account/dev/backend.tf).
-            2. Replace `<TF_BUCKET_NAME>` with the value of `$TF_BUCKET_NAME`.
-            3. Save the file.
-        2. Make a copy of [/service-account/dev/terraform.tfvars.template](./service-account/dev/terraform.tfvars.template).
-            ```
-            $ cd simple-website-tf-chef/service-account/dev
-            $ cp terraform.tfvars.template terraform.tfvars
-            ```
-        3. Set the values in terraform.tfvars as needed and save the file.
-            ```
-            project_id = "<CORE_PROJECT>"
+    **Steps:**
+    1. Set Terraform backend config.
+        1. Edit file [/service-account/dev/backend.tf](./service-account/dev/backend.tf).
+        2. Replace `<TF_BUCKET_NAME>` with the value of `$TF_BUCKET_NAME`.
+        3. Save the file.
+    2. Make a copy of [/service-account/dev/terraform.tfvars.template](./service-account/dev/terraform.tfvars.template).
+        ```
+        $ cd simple-website-tf-chef/service-account/dev
+        $ cp terraform.tfvars.template terraform.tfvars
+        ```
+    3. Set the values in terraform.tfvars as needed and save the file.
+        ```
+        project_id = "<CORE_PROJECT>"
 
-            credentials_file_path = "<KEY_FILE>"
+        credentials_file_path = "<KEY_FILE>"
 
-            service_account_id = "<APP_SA_NAME>"
+        service_account_id = "<APP_SA_NAME>"
 
-            code_repo_project = "<SEED_PROJECT>"
-            ```
-        4. Run `terraform init` and `terraform plan` within `/service-account/dev` directory
-            ```
-            $ terraform init
+        code_repo_project = "<SEED_PROJECT>"
+        ```
+    4. Run `terraform init` and `terraform plan` within `/service-account/dev` directory.
+        ```
+        $ terraform init
 
-            $ terraform plan
+        $ terraform plan
 
-                <...terraform plan output will be shown here...>
-            ```
-        5. Review the plan output to see what resources will be created and then run `terraform apply` to create the resources.
-            ```
-            $ terraform apply
+            <...terraform plan output will be shown here...>
+        ```
+    5. Review the plan output to see what resources will be created and then run `terraform apply` to create the resources.
+        ```
+        $ terraform apply
     
-                <...terraform will show plan output that will be applied and will ask for confirmation before it is applied...>
-            ```
+            <...terraform will show plan output that will be applied and will ask for confirmation before it is applied...>
+        ```
 
 ### 4. Deploy MIG infrastructure and website
 We will use Terraform [VM module](https://registry.terraform.io/modules/terraform-google-modules/vm/google) to create the GCE MIG without public IPs and [LB module](https://github.com/GoogleCloudPlatform/terraform-google-lb-http) to create the Global LB. The startup script will be used to trigger chef client in local mode on the instance that will do OS and application configurations and then make the website available.
