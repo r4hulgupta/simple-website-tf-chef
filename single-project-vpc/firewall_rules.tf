@@ -36,3 +36,19 @@ resource "google_compute_firewall" "allow_all_private_google_access" {
   direction          = "EGRESS"
   destination_ranges = ["199.36.153.4/30"]
 }
+
+# Allow SSH based on tags
+resource "google_compute_firewall" "allow_tag_based_ssh_access" {
+  name    = "${module.vpc-network-1.network_name}-allow-tag-based-ssh-access"
+  project = "${module.project-1.project_id}"
+  network = "${module.vpc-network-1.network_name}"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
+
+  target_tags   = ["allow-ssh-from-internet"]
+  direction     = "INGRESS"
+  source_ranges = ["0.0.0.0/0"]
+}
