@@ -51,6 +51,12 @@ $ gcloud auth login
 We will use a shell script to do initial seed project setup.
 > Feel free to skip running this script if you already have a project with that you can use as seed project and if that project already has the below configuration.
 
+**You may need the below permissions to be able to run this script:**
+* At Organization level:
+    * roles/billing.user
+    * roles/iam.securityAdmin
+    * roles/owner
+
 The script will perform below actions:
 1. Create a new seed project
 2. Assign billing account to seed project
@@ -92,7 +98,7 @@ CODE_REPO_NAME="mychefrepo"  # Do not change
 
 #### Run script setup_seed_prj.sh
 ```
-$ /helpers/setup_seed_prj.sh
+$ helpers/setup_seed_prj.sh
 ```
 
 ## Deployment Steps
@@ -112,7 +118,9 @@ APP_SA_NAME="svc-ws-dev"
 
 HELPER_BUCKET="my-core-prj-deployment-helpers"
 
-DEPLOYMENT_ID = "my-dev-website" 
+DEPLOYMENT_ID="my-dev-website" 
+
+CODE_REPO_NAME="mychefrepo"
 ```
 
 ### 2. Create a Project and custom VPC Network
@@ -192,12 +200,18 @@ The below components will be created by Terraform:
     ```
 
 ### 3. Prepare for website deployment
-1. Edit [ws_bootstrap.sh](./helpers/startup-scripts/ws_bootstrap.sh).
+1. Edit [/helpers/startup-scripts/ws_bootstrap.sh](./helpers/startup-scripts/ws_bootstrap.sh).
     1. Set the value of variable `SEED_PROJECT` with your value of `$SEED_PROJECT`.
 
 2. Upload the edited ws_bootstrap.sh to GCS Bucket.
     ```
-    $ gsutil cp -r helpers/startup-scripts/ gs://$HELPER_BUCKET/startup-scripts/
+    $ cd simple-website-tf-chef/
+
+    $ gsutil cp -r helpers/startup-scripts/ gs://$HELPER_BUCKET/
+
+    # To check if the file was uploaded successfully
+
+    $ gsutil ls -r gs://$HELPER_BUCKET
     ```
 
 3. Upload the chef repo to CSR.
@@ -205,15 +219,22 @@ The below components will be created by Terraform:
     Get source repository and set `git remote` to CSR repo that was created in SEED_PROJECT and push code from [mychefrepo](./mychefrepo) to it.
     > Read more about pushing code from existing repository to CSR [here](https://cloud.google.com/source-repositories/docs/pushing-code-from-a-repository).
     ```
-    $ cd simple-website-tf-chef/mychefrepo/
+    
+    $ cp -r simple-website-tf-chef/mychefrepo/ ./mychefrepo
+
+    $ cd mychefrepo/
         
     $ CODE_REPO_URL="https://source.developers.google.com/p/${SEED_PROJECT}/r/${CODE_REPO_NAME}"
 
     $ git config --global credential.'https://source.developers.google.com'.helper gcloud.sh
 
-    $ git remote add origin "${CODE_REPO_URL}"
+    $ git init
+    
+    $ git add . && git commit -am 'initial commit'
 
-    $ git push --all origin
+    $ git remote add google "${CODE_REPO_URL}"
+
+    $ git push --all google
     ```
 
 4. Create a golden image with dependencies pre-installed.
@@ -227,31 +248,41 @@ The below components will be created by Terraform:
             --zone=$GCP_ZONE \
             --machine-type=n1-standard-1 \
             --subnet="dev-${VPC_NAME}-${GCP_REGION_A}" \
-            --tags=allow-ssh \
+            --tags=allow-ssh-from-internet \
             --image-family=centos-7 \
             --image-project=centos-cloud \
             --boot-disk-size=10GB \
             --boot-disk-type=pd-standard \
             --boot-disk-device-name=$GOLD_IMAGE_VM
+            --service-account=project-service-account@${CORE_PROJECT}.iam.gserviceaccount.com
         ```
 
-    2. Install git so that cookbooks and app code can be pulled from the repository.
+    2. Once the instance is in RUNNING status, ssh into it to install some packages.
+       ```
+       $ gcloud compute ssh $GOLD_IMAGE_VM --zone=$GCP_ZONE --project=$CORE_PROJECT
+       ```
+
+    3. Install git so that cookbooks and app code can be pulled from the repository.
         ```
-        $ yum install git
+        $ sudo yum install git
         ```
 
-    3. Configure git to use gcloud as credentials helper.
+    4. Install Apache web server.
+        ```
+        $ sudo yum install httpd
+        ```
+    5. Configure git to use gcloud as credentials helper.
         
         > This step is needed when using Cloud Source Repository (CSR) for code management. This will let you use git commands to interact with CSR to pull code during bootstrap.
         ```
         $ sudo git config --global credential.'https://source.developers.google.com'.helper gcloud.sh
         ```
-    4. Install Chef Client.
+    6. Install Chef Client.
         > We are using version 15.0.300 for this example.
         ```
         $ curl -L https://omnitruck.chef.io/install.sh | sudo bash -s -- -v 15.0.300
         ```
-    5. Install Stackdriver Logging and Monitoring Agents.
+    7. Install Stackdriver Logging and Monitoring Agents.
         ```
         # Monitoring Agent
         $ curl -sSO https://dl.google.com/cloudagents/install-monitoring-agent.sh
@@ -261,12 +292,12 @@ The below components will be created by Terraform:
         $ curl -sSO https://dl.google.com/cloudagents/install-logging-agent.sh
         $ sudo bash install-logging-agent.sh
         ```
-    6. Stop the instance after installing packages to be able to create an image from it. 
+    8. Log out and stop the instance after installing packages to be able to create an image from it. 
         ```
-        $ gcloud compute instances stop $GOLD_IMAGE_VM --zone=us-west1-b \
+        $ gcloud compute instances stop $GOLD_IMAGE_VM --zone=$GCP_ZONE \
             --project=$CORE_PROJECT
         ```
-    7. Create the GCE instance image using the gcloud command or via the GCP Console. It typically takes 5-10 mins for the image creation to complete.
+    9. Create the GCE instance image using the gcloud command or via the GCP Console. It typically takes 5-10 mins for the image creation to complete.
         ```
         $ gcloud compute images create $GOLD_IMAGE_VM \
             --project=$CORE_PROJECT \
@@ -275,9 +306,9 @@ The below components will be created by Terraform:
             --source-disk=$GOLD_IMAGE_VM \
             --source-disk-zone=$GCP_ZONE
         ```
-    8. Check the status of image using the below command. It should by in ‘Ready’ state once completely created.
+    10. Check the status of image using the below command. It should by in ‘Ready’ state once completely created.
         ```
-        $ gcloud compute images list --filter="name='$GOLD_IMGE_VM'"
+        $ gcloud compute images list --filter="name='$GOLD_IMAGE_VM'" --project=$CORE_PROJECT
         ```
 5. Create a service account to be used by MIG VMs.
         
@@ -415,3 +446,46 @@ There are different ways to verify that the website is live:
 1. Check the website URL that was given by terraform as output.
 2. Go to the `GCP Console > Network Services > Load Balancing` and select your load balancer and ensure that the health checks are passing. When passing it will show a green check mark under Backends.
 3. Check logs on Stackdriver and Serial Port for the GCE instances that are part of the Managed Instance Group (MIG).
+
+## Cleanup
+Follow the below steps to cleanup all the resources created during this example:
+### 1. MIG infrastructure
+
+```
+$ cd simple-website-tf-chef/ws-deploy/dev/
+
+$ terraform destroy
+
+< ... review the plan that will be destroyed and type 'yes' to proceed ... >
+
+```
+
+### 2. Remove misceallaneous other resources
+1. Remove the service account.
+    ```
+    $ cd simple-website-tf-chef/service-account/dev/
+
+    $ terraform destroy
+    ```
+
+2. Remove GCE instance that was used to create instance image.
+    ```
+    $ gcloud compute instances delete $GOLD_IMAGE_VM --zone=$GCP_ZONE --project=$CORE_PROJECT
+    ```
+
+3. Remove GCE instance image.
+    ```
+    $ gcloud compute images delete $GOLD_IMAGE_VM --project=$CORE_PROJECT
+    ```
+
+4. Remove the CSR code repository.
+    ```
+    $ gcloud source repos delete $CODE_REPO_NAME --project $SEED_PROJECT
+    ``` 
+
+### 3. Delete the project and VPC network
+```
+$ cd simple-website-tf-chef/single-project-vpc/core/
+
+$ terraform destroy
+```

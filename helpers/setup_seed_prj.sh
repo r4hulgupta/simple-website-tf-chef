@@ -19,7 +19,7 @@ set -e
 set -u
 
 # Source input variables
-. ./setup_seed_prj.env
+. ./helpers/setup_seed_prj.env
 
 # Set Locals
 SA_ID="$SA_NAME@$SEED_PROJECT.iam.gserviceaccount.com"
@@ -43,7 +43,7 @@ then
    echo "The Seed Project does not exist. Creating..."
    gcloud projects create $SEED_PROJECT
 else
-   echo "The Seed Project exists already. Will not be created."
+   echo "The Seed Project already exists. Will not be created."
 fi
 
 # Billing account
@@ -60,11 +60,20 @@ else
   echo "Skipping billing account verification... (parameter not passed)"
 fi
 
- # Seed Service Account creation
-echo "Creating Seed Service Account $SA_NAME..."
-gcloud iam service-accounts \
+# Seed Service Account creation
+# Check Seed service account
+echo "Checking if Seed Service Account exists..."
+CHECK_SA="$(gcloud iam service-accounts list --format="value(NAME)" --filter="${SA_NAME}" --project=${SEED_PROJECT})"
+
+if [[ $CHECK_SA == "" ]];
+then
+   echo "The Seed Service Account '$SA_NAME' does not exist. Creating..."
+   gcloud iam service-accounts \
     --project "${SEED_PROJECT}" create ${SA_NAME} \
     --display-name ${SA_NAME}
+else
+   echo "The Seed Service Account '$SA_NAME' already exists. Will not be created."
+fi
 
 echo "Downloading key to $KEY_FILE..."
 gcloud iam service-accounts keys create "${KEY_FILE}" \
@@ -171,12 +180,20 @@ if [[ ${CHECK_BILLING_ACCOUNT:-} != "" ]]; then
   rm -f policy-tmp-$$.yml
 fi
 
+# Enable billing for the seed project
+echo "Linking Billing account '${BILLING_ACCOUNT}' with project '${SEED_PROJECT}'"
+gcloud beta billing projects link ${SEED_PROJECT} --billing-account=${BILLING_ACCOUNT}
 
 # Create a GCS Bucket for Terraform State
 if [ "x$TF_BUCKET_NAME" != "x"  ]; then
-  echo "Creating GCS Bucket for Terraform state"
-  gsutil mb "gs://${TF_BUCKET_NAME}"
 
+  CHECK_BUCKET="$(gsutil ls -b -p $SEED_PROJECT gs://${TF_BUCKET_NAME})"
+  if [[ $CHECK_BUCKET == "" ]]; then
+    echo "Creating GCS Bucket for Terraform state"
+    gsutil mb "gs://${TF_BUCKET_NAME}" -p $SEED_PROJECT
+  else
+    echo "Bucket already exists. Will not be created."
+  fi
 else
   echo "TF_BUCKET_NAME variable not set in input variables file. Exiting..."
   exit 1;
