@@ -190,7 +190,7 @@ if [ "x$TF_BUCKET_NAME" != "x"  ]; then
   CHECK_BUCKET="$(gsutil ls -b -p $SEED_PROJECT gs://${TF_BUCKET_NAME}  2>/dev/null || echo '')"
   if [[ $CHECK_BUCKET == "" ]]; then
     echo "Creating GCS Bucket for Terraform state"
-    gsutil mb "gs://${TF_BUCKET_NAME}" -p $SEED_PROJECT
+    gsutil mb -p $SEED_PROJECT "gs://${TF_BUCKET_NAME}"
   else
     echo "Bucket already exists. Will not be created."
   fi
