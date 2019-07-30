@@ -187,7 +187,7 @@ gcloud beta billing projects link ${SEED_PROJECT} --billing-account=${BILLING_AC
 # Create a GCS Bucket for Terraform State
 if [ "x$TF_BUCKET_NAME" != "x"  ]; then
 
-  CHECK_BUCKET="$(gsutil ls -b -p $SEED_PROJECT gs://${TF_BUCKET_NAME})"
+  CHECK_BUCKET="$(gsutil ls -b -p $SEED_PROJECT gs://${TF_BUCKET_NAME}  2>/dev/null || echo '')"
   if [[ $CHECK_BUCKET == "" ]]; then
     echo "Creating GCS Bucket for Terraform state"
     gsutil mb "gs://${TF_BUCKET_NAME}" -p $SEED_PROJECT
