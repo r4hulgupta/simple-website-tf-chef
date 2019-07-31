@@ -45,6 +45,9 @@ $ gcloud init
     <... Follow the interactive prompts to set values for project, zone defaults etc. ...>
 
 $ gcloud auth login
+
+$ gcloud auth application-default login
+
 ```
 
 ### 3. Setup a seed project
